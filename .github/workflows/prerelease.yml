@@ -17,9 +17,11 @@ env:
   INTEGRATION: "redis"
   ORIGINAL_REPO_NAME: 'newrelic/nri-redis'
   PFX_CERTIFICATE_BASE64: ${{ secrets.PFX_CERTIFICATE_BASE64 }} # base64 encoded
+  PFX_CERTIFICATE_DESCRIPTION: 'Contoso' # 'New Relic Infrastructure Agent'
   PFX_PASSPHRASE:  ${{ secrets.PFX_PASSPHRASE }}
   REPO_FULL_NAME: ${{ github.event.repository.full_name }}
   SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+  SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
   SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
   TAG: ${{ github.event.release.tag_name }}
 
@@ -100,7 +102,7 @@ jobs:
   prerelease:
     name: Build binary for *Nix/Win, create archives for *Nix/Win, create packages for *Nix, upload all artifacts into GH Release assets
     runs-on: ubuntu-20.04
-    needs: [validate, test-nix, test-integration-nix]
+    needs: [validate, test-nix, test-windows, test-integration-nix]
     steps:
       - uses: actions/checkout@v2
       - name: Pre release
@@ -114,7 +116,7 @@ jobs:
           slack-text: ":shit: Repo: ${REPO_FULL_NAME}, prerelease for nix FAILURE!"
 
   package-win:
-    name: Create MSI & Push GH
+    name: Create MSI & Upload into GH Release assets
     runs-on: windows-2019
     needs: [prerelease]
     env:
@@ -140,7 +142,7 @@ jobs:
       - name: Create MSI
         shell: pwsh
         run: |
-          build\windows\package_msi.ps1 -integration "$env:INTEGRATION" -arch ${{ matrix.goarch }} -tag "$env:TAG" -pfx_certificate_base64 "$env:PFX_CERTIFICATE_BASE64" -pfx_passphrase "$env:PFX_PASSPHRASE"
+          build\windows\package_msi.ps1 -integration "$env:INTEGRATION" -arch ${{ matrix.goarch }} -tag "$env:TAG" -pfx_passphrase "$env:PFX_PASSPHRASE" -pfx_certificate_description "$env:PFX_CERTIFICATE_DESCRIPTION"
       - name: Upload MSI to GH
         shell: bash
         run: |
